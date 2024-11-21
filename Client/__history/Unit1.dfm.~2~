@@ -1,0 +1,40 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Client'
+  ClientHeight = 223
+  ClientWidth = 330
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
+  Font.Style = []
+  OnCreate = FormCreate
+  DesignSize = (
+    330
+    223)
+  TextHeight = 15
+  object Memo1: TMemo
+    Left = 0
+    Top = 0
+    Width = 329
+    Height = 225
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    TabOrder = 0
+  end
+  object WSocket1: TWSocket
+    LineEnd = #13#10
+    Proto = 'tcp'
+    LocalAddr = '0.0.0.0'
+    LocalAddr6 = '::'
+    LocalPort = '0'
+    SocksLevel = '5'
+    ExclusiveAddr = False
+    ComponentOptions = []
+    ListenBacklog = 15
+    SocketErrs = wsErrTech
+    Left = 32
+    Top = 16
+  end
+end
