@@ -38,7 +38,7 @@
       <li><strong>Private Messaging:</strong> Select a client from the server’s ListView and send a direct message.</li>
     </ul>
   </li>
-  <li><strong>Disconnection:</strong> Clients can disconnect gracefully using the disconnect button.</li>
+  <li><strong>Disconnection:</strong> Clients can disconnect gracefully by simply closing the client application.</li>
 </ol>
 
 <h2><span style="font-size: 20px; margin-right: 10px;">🤝</span>Contributing</h2>
