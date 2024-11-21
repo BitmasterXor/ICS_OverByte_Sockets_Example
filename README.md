@@ -2,6 +2,10 @@
 
 <p>This repository features a Server/Client messaging application built in <strong>Delphi</strong>, utilizing the <strong>ICS Overbyte sockets</strong> library. This project enables real-time text communication and demonstrates robust server-client interaction.</p>
 
+<p align="center">
+  <img src="Preview.png" alt="Screenshot of Delphi VOIP and Chat Applications" style="max-width:100%; height:auto;">
+</p>
+
 <h2><span style="font-size: 20px; margin-right: 10px;">📋</span>Projects Overview</h2>
 <ul>
   <li><strong>Server Application:</strong> Handles multiple client connections, displays client IP addresses and nicknames in a ListView, and manages both broadcast and private messaging.</li>
