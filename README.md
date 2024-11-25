@@ -14,6 +14,7 @@
 
 <h2><span style="font-size: 20px; margin-right: 10px;">✨</span>Features</h2>
 <ul>
+  <li><strong>NEW:</strong> New Project Uploaded to show you how to send images accross these socket components from Client > to Server!</li>
   <li><strong>Multiple Client Connections:</strong> The server can manage connections from multiple clients simultaneously.</li>
   <li><strong>Broadcast Messaging:</strong> Send messages to all connected clients at once.</li>
   <li><strong>Private Messaging:</strong> Select specific clients from the server's ListView to send direct messages.</li>
