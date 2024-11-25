@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <Transactions>
+    <Transaction>2024/11/24 18:53:59.918,=C:\Users\BitmasterXor\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2024/11/24 18:54:50.001,C:\Users\BitmasterXor\Desktop\Delphi ICS Send Image Example\Server\Unit1.dfm=C:\Users\BitmasterXor\Documents\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>2024/11/24 18:54:50.001,C:\Users\BitmasterXor\Desktop\Delphi ICS Send Image Example\Server\Unit1.pas=C:\Users\BitmasterXor\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2024/11/24 18:54:51.829,C:\Users\BitmasterXor\Desktop\Delphi ICS Send Image Example\Server\Server.dproj=C:\Users\BitmasterXor\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+    <Transaction>2024/11/24 18:58:46.151,C:\Users\BitmasterXor\Desktop\Delphi ICS Send Image Example\Server\ServerMain.dproj=C:\Users\BitmasterXor\Desktop\Delphi ICS Send Image Example\Server\Server.dproj</Transaction>
+  </Transactions>
+</BorlandProject>

@@ -1,0 +1,183 @@
+// Client Unit
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, OverbyteIcsWSocket, OverbyteIcsTypes, Vcl.ExtDlgs,
+  OverbyteIcsWndControl;
+
+type
+  TForm1 = class(TForm)
+    WSocket1: TWSocket;
+    Image1: TImage;
+    ButtonConnect: TButton;
+    ButtonSendImage: TButton;
+    ButtonBrowse: TButton;
+    EditServer: TEdit;
+    OpenPictureDialog1: TOpenPictureDialog;
+    MemoLog: TMemo;
+    procedure FormCreate(Sender: TObject);
+    procedure ButtonConnectClick(Sender: TObject);
+    procedure ButtonBrowseClick(Sender: TObject);
+    procedure ButtonSendImageClick(Sender: TObject);
+    procedure WSocket1SessionConnected(Sender: TObject; Error: Word);
+    procedure WSocket1SessionClosed(Sender: TObject; Error: Word);
+  private
+    FFileName: string;
+    procedure LogMessage(const Msg: string);
+  public
+    Connected: boolean;
+  end;
+
+var
+  ClientForm: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  self.Connected := false;
+  EditServer.Text := 'localhost';
+  WSocket1.Proto := 'tcp';
+  WSocket1.Port := '9001';
+  LogMessage('Client ready');
+end;
+
+procedure TForm1.ButtonConnectClick(Sender: TObject);
+begin
+  if not self.Connected then
+  begin
+    WSocket1.Addr := EditServer.Text;
+    try
+      WSocket1.Connect;
+    except
+      on E: Exception do
+        LogMessage('Connection error: ' + E.Message);
+    end;
+  end
+  else
+  begin
+    WSocket1.Close;
+    ButtonConnect.Caption := 'Connect';
+  end;
+end;
+
+procedure TForm1.ButtonBrowseClick(Sender: TObject);
+begin
+  if OpenPictureDialog1.Execute then
+  begin
+    FFileName := OpenPictureDialog1.FileName;
+    try
+      Image1.Picture.LoadFromFile(FFileName);
+      ButtonSendImage.Enabled := True;
+      LogMessage('Image loaded: ' + ExtractFileName(FFileName));
+    except
+      on E: Exception do
+      begin
+        LogMessage('Error loading image: ' + E.Message);
+        FFileName := '';
+        ButtonSendImage.Enabled := false;
+      end;
+    end;
+  end;
+end;
+
+procedure TForm1.ButtonSendImageClick(Sender: TObject);
+var
+  Stream: TMemoryStream;
+  Size: Cardinal;
+  SizeStr: string;
+  Buffer: array[0..8191] of Byte;
+  BytesRead: Integer;
+  BytesSent: Integer;
+begin
+  if not self.Connected then
+  begin
+    LogMessage('Not connected to server');
+    Exit;
+  end;
+
+  if FFileName = '' then
+  begin
+    LogMessage('No image selected');
+    Exit;
+  end;
+
+  Stream := TMemoryStream.Create;
+  try
+    // Load file directly into stream instead of using bitmap
+    Stream.LoadFromFile(FFileName);
+    Size := Stream.Size;
+
+    // Debug output
+    LogMessage('File size: ' + IntToStr(Size));
+
+    // Format size as fixed-length 10 digit string with padding
+    SizeStr := Format('%.10d', [Size]);
+    LogMessage('Sending size string: ' + SizeStr);
+
+    // Send the fixed-length size string
+    if WSocket1.Send(PAnsiChar(AnsiString(SizeStr)), 10) < 10 then
+    begin
+      LogMessage('Failed to send size information');
+      Exit;
+    end;
+
+    // Small delay to ensure size is received
+    Sleep(100);
+
+    // Send image data in chunks
+    Stream.Position := 0;
+    repeat
+      BytesRead := Stream.Read(Buffer, SizeOf(Buffer));
+      if BytesRead <= 0 then
+        Break;
+
+      BytesSent := WSocket1.Send(@Buffer, BytesRead);
+      if BytesSent < 0 then
+      begin
+        LogMessage('Error sending data');
+        Exit;
+      end;
+
+      LogMessage('Sent chunk of ' + IntToStr(BytesSent) + ' bytes');
+    until BytesRead < SizeOf(Buffer);
+
+    LogMessage('Image sent to server (' + IntToStr(Size) + ' bytes total)');
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TForm1.WSocket1SessionConnected(Sender: TObject; Error: Word);
+begin
+  if Error = 0 then
+  begin
+    LogMessage('Connected to server');
+    self.Connected := True;
+    ButtonConnect.Caption := 'Disconnect';
+    ButtonBrowse.Enabled := True;
+  end
+  else
+    LogMessage('Connection failed with error: ' + IntToStr(Error));
+end;
+
+procedure TForm1.WSocket1SessionClosed(Sender: TObject; Error: Word);
+begin
+  self.Connected := false;
+  LogMessage('Disconnected from server');
+  ButtonConnect.Caption := 'Connect';
+  ButtonBrowse.Enabled := false;
+  ButtonSendImage.Enabled := false;
+end;
+
+procedure TForm1.LogMessage(const Msg: string);
+begin
+  MemoLog.Lines.Add(FormatDateTime('hh:nn:ss', Now) + ': ' + Msg);
+end;
+
+end.

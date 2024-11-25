@@ -1,0 +1,213 @@
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, ExtCtrls, OverbyteIcsWSocket, OverbyteIcsWSocketS, OverbyteIcsTypes,
+  OverbyteIcsWndControl;
+
+type
+  TForm1 = class(TForm)
+    WSocketServer1: TWSocketServer;
+    Image1: TImage;
+    MemoLog: TMemo;
+    ButtonStart: TButton;
+    ButtonStop: TButton;
+    procedure ButtonStartClick(Sender: TObject);
+    procedure ButtonStopClick(Sender: TObject);
+    procedure WSocketServer1ClientConnect(Sender: TObject;
+      Client: TWSocketClient; Error: Word);
+    procedure WSocketServer1ClientDisconnect(Sender: TObject;
+      Client: TWSocketClient; Error: Word);
+  private
+    procedure ClientDataAvailable(Sender: TObject; Error: Word);
+    procedure LogMessage(const Msg: string);
+  public
+  end;
+
+var
+  ServerForm: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+type
+  TImageClient = class(TWSocketClient)
+  private
+    FStream: TMemoryStream;
+    FSize: Cardinal;
+    FReceived: Cardinal;
+    FSizeStr: string;
+    FSizeReceived: Boolean;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure ResetState;
+  end;
+
+constructor TImageClient.Create(AOwner: TComponent);
+begin
+  inherited;
+  FStream := TMemoryStream.Create;
+  ResetState;
+end;
+
+procedure TImageClient.ResetState;
+begin
+  FSize := 0;
+  FReceived := 0;
+  FSizeReceived := False;
+  FSizeStr := '';
+  FStream.Clear;
+end;
+
+destructor TImageClient.Destroy;
+begin
+  FStream.Free;
+  inherited;
+end;
+
+procedure TForm1.ButtonStartClick(Sender: TObject);
+begin
+  WSocketServer1.Proto := 'tcp';
+  WSocketServer1.Port := '9001';
+  Wsocketserver1.Addr:='0.0.0.0';
+  WSocketServer1.ClientClass := TImageClient;
+  try
+    WSocketServer1.Listen;
+    LogMessage('Server listening on port ' + WSocketServer1.Port);
+    ButtonStart.Enabled := False;
+    ButtonStop.Enabled := True;
+  except
+    on E: Exception do
+      LogMessage('Error starting server: ' + E.Message);
+  end;
+end;
+
+procedure TForm1.ButtonStopClick(Sender: TObject);
+begin
+  WSocketServer1.DisconnectAll;
+  WSocketServer1.Close;
+  LogMessage('Server stopped');
+  ButtonStart.Enabled := True;
+  ButtonStop.Enabled := False;
+end;
+
+procedure TForm1.WSocketServer1ClientConnect(Sender: TObject;
+  Client: TWSocketClient; Error: Word);
+begin
+  LogMessage('Client connected from: ' + Client.PeerAddr);
+  Client.OnDataAvailable := ClientDataAvailable;
+end;
+
+procedure TForm1.WSocketServer1ClientDisconnect(Sender: TObject;
+  Client: TWSocketClient; Error: Word);
+begin
+  LogMessage('Client disconnected: ' + Client.PeerAddr);
+end;
+
+procedure Tform1.ClientDataAvailable(Sender: TObject; Error: Word);
+var
+  Client: TImageClient;
+  Buffer: array[0..8191] of Byte;
+  Count: Integer;
+  SizeBuffer: array[0..9] of AnsiChar;
+  Icon: TIcon;
+  Magic: array[0..3] of Byte;
+  IsIcon: Boolean;
+begin
+  Client := TImageClient(Sender);
+
+  // First receive the fixed-length size (10 bytes)
+  if not Client.FSizeReceived then
+  begin
+    Count := Client.Receive(@SizeBuffer, 10);
+    if Count = 10 then
+    begin
+      SetString(Client.FSizeStr, SizeBuffer, 10);
+      Client.FSize := StrToIntDef(Client.FSizeStr, 0);
+      Client.FSizeReceived := True;
+      LogMessage('Size string received: ' + Client.FSizeStr);
+      LogMessage('Expected image size: ' + IntToStr(Client.FSize));
+    end
+    else if Count < 0 then
+    begin
+      LogMessage('Error receiving size information');
+      Exit;
+    end
+    else
+      Exit; // Wait for more data
+  end;
+
+  // Now receive the actual image data
+  if (Client.FSize > 0) then
+  begin
+    repeat
+      Count := Client.Receive(@Buffer, SizeOf(Buffer));
+      if Count <= 0 then
+        Break;
+
+      Client.FStream.WriteBuffer(Buffer, Count);
+      Client.FReceived := Client.FReceived + Count;
+
+      LogMessage(Format('Received %d of %d bytes (%.1f%%)',
+                [Client.FReceived, Client.FSize,
+                 (Client.FReceived / Client.FSize) * 100]));
+
+      // Check if we've received the complete image
+      if Client.FReceived >= Client.FSize then
+      begin
+        Client.FStream.Position := 0;
+        try
+          // Read first 4 bytes to check file type
+          Client.FStream.ReadBuffer(Magic, SizeOf(Magic));
+          Client.FStream.Position := 0;
+
+          // Check if it's an icon (ICO file signature is 00 00 01 00)
+          IsIcon := (Magic[0] = 0) and (Magic[1] = 0) and
+                   (Magic[2] = 1) and (Magic[3] = 0);
+
+          if IsIcon then
+          begin
+            LogMessage('Detected ICO format');
+            Icon := TIcon.Create;
+            try
+              Icon.LoadFromStream(Client.FStream);
+              Image1.Picture.Assign(Icon);
+            finally
+              Icon.Free;
+            end;
+          end
+          else
+          begin
+            LogMessage('Loading as standard image format');
+            Image1.Picture.LoadFromStream(Client.FStream);
+          end;
+          LogMessage('Image received and displayed successfully');
+        except
+          on E: Exception do
+          begin
+            LogMessage('Error loading image: ' + E.Message);
+            LogMessage('First 4 bytes: ' +
+              Format('%.2x %.2x %.2x %.2x',
+                     [Magic[0], Magic[1], Magic[2], Magic[3]]));
+          end;
+        end;
+
+        // Reset for next image
+        Client.ResetState;
+        Break;
+      end;
+    until False;
+  end;
+end;
+
+
+procedure TForm1.LogMessage(const Msg: string);
+begin
+  MemoLog.Lines.Add(FormatDateTime('hh:nn:ss', Now) + ': ' + Msg);
+
+end;
+end.
